@@ -1,4 +1,3 @@
-import asyncio
 from multiprocessing import Process, Manager, freeze_support
 import sys
 
@@ -6,7 +5,8 @@ from PyQt6 import QtWidgets
 
 from workers.log_worker import LogWorker
 from workers.main_worker import MainWorker
-from workers.daq_worker import
+from workers.gui import MainWindow
+
 
 def main():
     with Manager() as manager:
@@ -21,23 +21,20 @@ def main():
         queues["daq_queue"].name = "daq_queue"
 
         log_worker = LogWorker("log_worker", queues)
-        log_worker_p = Process(target=log_worker.main, args=())
+        log_worker_p = Process(target=log_worker.initialize_event_loop, args=())
         log_worker_p.start()
 
         main_worker = MainWorker("main_worker", queues)
-        main_worker_p = Process(target=main_worker.main, args=())
+        main_worker_p = Process(target=main_worker.initialize_event_loop, args=())
         main_worker_p.start()
-
-        daq_worker =
-        p = Process(target=start_serial, args=("micro_controller", queues, "COM 5"))
-        p.start()
 
         app = QtWidgets.QApplication(sys.argv)
         mainWindow = MainWindow("gui_controller", queues)
         mainWindow.show()
 
         ret = app.exec()
-        p.join()  # Ensure the process finishes
+        log_worker_p.join()
+        main_worker_p.join()
         sys.exit(ret)
 
 

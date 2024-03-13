@@ -5,7 +5,7 @@ import time
 from workers.base_worker import BaseWorker
 
 
-class MainWorker(BaseWorker):
+class TemplateWorker(BaseWorker):
     def __init__(self, name: str, queues: dict, active: bool=False,
                        msg_check_interval: float=0.2, run_interval: float=2):
         super().__init__(name, queues)
@@ -16,7 +16,7 @@ class MainWorker(BaseWorker):
 
     async def main(self):
         while self.alive:
-            msg = self.get_message(self.queues["main_queue"])
+            msg = self.get_message(self.queues["replace_with_queue_name"])
             if msg:
                 command, data, sender = msg["command"], msg["data"], msg["sender"]
                 self.log_msg("info", str(msg))
@@ -48,12 +48,5 @@ class MainWorker(BaseWorker):
     def run(self):
         current_time = time.time()
         if (current_time - self.last_run_time) >= self.run_interval:
-            value = random.random()
-            if 0 <= value <= 0.3:  # Corrected condition
-                data = "Running"
-            elif 0.3 < value <= 0.6:  # Corrected condition
-                data = "Stopped"
-            elif value > 0.6:
-                data = "Interlock"
-            self.send_message(self.queues["gui_queue"], "status", data)
-            self.last_run_time = current_time
+            print("running")
+

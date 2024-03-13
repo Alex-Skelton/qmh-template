@@ -4,7 +4,6 @@ import sys
 import time
 
 from PyQt6 import QtCore, QtGui, QtWidgets
-from serial.tools import list_ports
 
 
 class Ui_MainWindow(object):
@@ -17,10 +16,6 @@ class Ui_MainWindow(object):
         self.enable_btn = QtWidgets.QPushButton(parent=self.centralwidget)
         self.enable_btn.setGeometry(QtCore.QRect(60, 110, 221, 41))
         self.enable_btn.setObjectName("enable_btn")
-        # self.device_dropdown = QtWidgets.QComboBox(parent=self.centralwidget)
-        self.device_dropdown = CustomComboBox(parent=self.centralwidget)
-        self.device_dropdown.setGeometry(QtCore.QRect(10, 40, 351, 31))
-        self.device_dropdown.setObjectName("device_dropdown")
         self.label_2 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(10, 10, 101, 17))
         self.label_2.setObjectName("label_2")
@@ -82,49 +77,43 @@ class CustomComboBox(QtWidgets.QComboBox):
 
     def showPopup(self):
         self.clear()  # Clear the existing items
-        self.populate_com_ports()  # Populate the COM ports
+        # self.populate_com_ports()  # Populate the COM ports
         super().showPopup()  # Call the base class showPopup
 
-    def populate_com_ports(self):
-        com_ports = list_ports.comports()
-        for port in com_ports:
-            self.addItem(f"{port.device} - {port.description}")
+    # def populate_com_ports(self):
+    #     com_ports = list_ports.comports()
+    #     for port in com_ports:
+    #         self.addItem(f"{port.device} - {port.description}")
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self, name, gui_queue, main_queue, *args, **kwargs):
+    def __init__(self, name: str, queues, msg_check_interval: int=100, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.name = name
         self.log_list_text = []
         self.setupUi(self)
-        self.gui_queue = gui_queue
-        self.gui_queue.name = "gui_q"
-        self.main_queue = main_queue
-        self.main_queue.name = "main_q"
-        self.enable_btn.clicked.connect(lambda: self.send_message(self.main_queue,
+        self.queues = queues
+        self.msg_check_interval = msg_check_interval
+        self.enable_btn.clicked.connect(lambda: self.send_message(self.queues["main_queue"],
                                                                   "start"))
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)  # Check every 100ms
+        self.timer.setInterval(msg_check_interval)
         self.timer.timeout.connect(self.check_queue)
         self.timer.start()
 
-    def send_message(self, queue, command, data=""):
+    def send_message(self, queue: Queue, command: str, data: str = ""):
         try:
             queue.put({"command": command,
                        "data": data,
                        "sender": self.name})
         except Exception as e:
-            print(f"{self.name}: Error sending message to queue: {e}")
+            self.log_msg("Error", f"{self.name}: Error sending message to {queue.name}: {e}")
 
     def check_queue(self):
-        if not self.gui_queue.empty():
-            msg = self.gui_queue.get()
+        if not self.queues["gui_queue"].empty():
+            msg = self.queues["gui_queue"].get()
             command, data, sender = msg["command"], msg["data"], msg["sender"]
-            now = datetime.now()
-            formatted_time = now.strftime("%d-%m-%Y %H:%M:%S")
-            log_msg = f"{formatted_time}; {self.name}: Received command ({command}) from ({sender})"
-            self.log_list_text.append(log_msg)
-            self.model.setStringList(self.log_list_text)
+            self.log_msg("info", str(msg))
             if command == "status":
                 if data == "Running":
                     colour = "#15d418"
@@ -140,9 +129,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         # Logic to execute before the window closes
         print("Window is closing")
-        self.send_message(self.main_queue, "shutdown")
+        self.send_message(self.queues["main_queue"], "shutdown")
         # Ensure the parent method gets called
         super().closeEvent(event)
+
+    def log_msg(self, level: str, msg: str):
+        timestamp = datetime.now()
+        log_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        formatted_message = f"{log_time} - {msg}"
+        recent_log = {"level": level, "msg": formatted_message}
+        self.queues["log_queue"].put({"command": "log",
+                   "data": recent_log,
+                   "sender": self.name})
 
 
 if __name__ == "__main__":
