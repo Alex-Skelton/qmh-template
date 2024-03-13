@@ -4,22 +4,29 @@ import sys
 
 from PyQt6 import QtWidgets
 
+from workers.log_worker import LogWorker
 from workers.main_worker import MainWorker
 from workers.daq_worker import
 
 def main():
     with Manager() as manager:
-        queues = {"gui_queue": manager.Queue(maxsize=100),
+        queues = {"log_queue": manager.Queue(maxsize=100),
+                  "gui_queue": manager.Queue(maxsize=100),
                   "main_queue": manager.Queue(maxsize=100),
                   "daq_queue": manager.Queue(maxsize=100)}
 
+        queues["log_queue"].name = "log_queue"
         queues["gui_queue"].name = "gui_queue"
         queues["main_queue"].name = "main_queue"
         queues["daq_queue"].name = "daq_queue"
 
-        main_worker = MainWorker("main_controller", queues)
-        p = Process(target=main_worker.main, args=())
-        p.start()
+        log_worker = LogWorker("log_worker", queues)
+        log_worker_p = Process(target=log_worker.main, args=())
+        log_worker_p.start()
+
+        main_worker = MainWorker("main_worker", queues)
+        main_worker_p = Process(target=main_worker.main, args=())
+        main_worker_p.start()
 
         daq_worker =
         p = Process(target=start_serial, args=("micro_controller", queues, "COM 5"))

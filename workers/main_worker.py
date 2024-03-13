@@ -1,11 +1,8 @@
 import asyncio
-import random
 
 from loguru import logger
 
 from workers.base_worker import BaseWorker
-# Configure Loguru to write logs to a file, capping file size and rotating data. First In Last Out
-logger.add("log_file.log", rotation="10 MB", enqueue=True)
 
 
 class MainWorker(BaseWorker):
@@ -26,9 +23,6 @@ class MainWorker(BaseWorker):
             elif command == "stop":
                 self.stop()
 
-            elif command == "logger":
-                self.create_log(data)
-
         if self.active:
             self.run()
 
@@ -46,14 +40,4 @@ class MainWorker(BaseWorker):
         self.active = False
 
     def run(self):
-        command = "send"
-        data = random.random()
-
-
-    def create_log(self, data):
-        if data["log_type"] == "info":
-            logger.info(f"{data['sender']}: {data['msg']}")
-        elif data["log_type"] == "warning":
-            logger.warning(f"{data['sender']}: {data['msg']}")
-        elif data["log_type"] == "error":
-            logger.error(f"{data['sender']}: {data['msg']}")
+        print("running")

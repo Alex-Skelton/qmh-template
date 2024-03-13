@@ -3,4 +3,7 @@
 
 
 
-how to distribute queues
+- how to distribute queues
+- logging
+- template
+- gui worker
