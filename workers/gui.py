@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                        "data": data,
                        "sender": self.name})
         except Exception as e:
-            self.log_msg("Error", f"{self.name}: Error sending message to {queue.name}: {e}")
+            self.log_msg("error", f"{self.name}: Error sending message to {queue.name}: {e}")
 
     def check_queue(self):
         if not self.queues["gui_queue"].empty():

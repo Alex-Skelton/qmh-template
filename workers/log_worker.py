@@ -57,3 +57,4 @@ class LogWorker(BaseWorker):
             logger.warning(msg["msg"])
         elif msg["level"] == "error":
             logger.error(msg["msg"])
+            self.shutdown()

@@ -26,7 +26,7 @@ class BaseWorker:
             return msg
         except Exception as e:
             self.alive = False
-            self.log_msg("Error", f"{self.name}: Error receiving message from {queue.name}: {e}")
+            self.log_msg("error", f"{self.name}: Error receiving message from {queue.name}: {e}")
 
     def send_message(self, queue: Queue, command: str, data: str = ""):
         try:
@@ -34,7 +34,7 @@ class BaseWorker:
                        "data": data,
                        "sender": self.name})
         except Exception as e:
-            self.log_msg("Error", f"{self.name}: Error sending message to {queue.name}: {e}")
+            self.log_msg("error", f"{self.name}: Error sending message to {queue.name}: {e}")
 
     def log_msg(self, level: str, msg: str):
         timestamp = datetime.now()
