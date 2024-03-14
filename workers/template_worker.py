@@ -36,8 +36,6 @@ class TemplateWorker(BaseWorker):
 
     def shutdown(self):
         self.alive = False
-        for q in self.queues.values():
-            self.send_message(q, "shutdown")
 
     def start(self):
         self.active = True
