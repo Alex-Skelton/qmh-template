@@ -1,27 +1,29 @@
 import asyncio
-import random
 import time
 
 from workers.base_worker import BaseWorker
+from workers.named_queues import NamedQueues as q
 
 
-class TemplateWorker(BaseWorker):
+class MainWorker(BaseWorker):
     def __init__(self, name: str, queues: dict, active: bool=False,
-                       msg_check_interval: float=0.2, run_interval: float=2):
+                       msg_check_interval: float=0.5, run_interval: float=2):
         super().__init__(name, queues)
         self.active = active
         self.msg_check_interval = msg_check_interval
         self.run_interval = run_interval
-        self.last_run_time = time.time()  # Track the last time run was executed
+        self.last_run_time = time.time()
+        self.shutdown_initiated = False
+        self.class_queue = q.main_queue
 
     async def main(self):
-        while self.alive:
-            msg = self.get_message(self.queues["replace_with_queue_name"])
+        while self.alive or not self.shutdown_initiated:
+            msg = self.get_message(q.main_queue)
             if msg:
                 command, data, sender = msg["command"], msg["data"], msg["sender"]
-                self.log_msg("info", str(msg))
+                self.log_msg("info", str(msg), self.name)
                 if command == "shutdown":
-                    self.shutdown()
+                    self.start_process_shutdown()
 
                 elif command == "start":
                     self.start()
@@ -29,13 +31,13 @@ class TemplateWorker(BaseWorker):
                 elif command == "stop":
                     self.stop()
 
+            else:
+                if self.shutdown_initiated and self.queues[q.log_queue].empty():
+                    break
             if self.active:
                 self.run()
-
-        await asyncio.sleep(self.msg_check_interval)
-
-    def shutdown(self):
-        self.alive = False
+            await asyncio.sleep(self.msg_check_interval)
+        self.finalise_process_shutdown()
 
     def start(self):
         self.active = True
@@ -46,5 +48,4 @@ class TemplateWorker(BaseWorker):
     def run(self):
         current_time = time.time()
         if (current_time - self.last_run_time) >= self.run_interval:
-            print("running")
-
+            self.last_run_time = current_time

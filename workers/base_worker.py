@@ -1,13 +1,14 @@
 import asyncio
 from _datetime import datetime
 
-from multiprocessing import Queue
+from workers.named_queues import NamedQueues as q
 
 class BaseWorker:
     def __init__(self, name: str, queues: dict):
         self.name = name
         self.queues = queues
         self.alive = True
+        self.shutdown_initiated = False
 
     def initialize_event_loop(self):
         self.loop = asyncio.new_event_loop()
@@ -18,29 +19,38 @@ class BaseWorker:
     async def main(self):
         pass
 
-    def get_message(self, queue: Queue):
+    def start_process_shutdown(self):
+        self.shutdown_initiated = True
+
+    def start_application_shutdown(self):
+        self.send_message(q.main_queue, "shutdown")
+
+    def finalise_process_shutdown(self):
+        self.alive = False
+
+    def get_message(self, q_name):
         msg = None
         try:
-            if not queue.empty():
-                msg = queue.get()
+            if not self.queues[q_name].empty():
+                msg = self.queues[q_name].get()
             return msg
         except Exception as e:
             self.alive = False
-            self.log_msg("error", f"{self.name}: Error receiving message from {queue.name}: {e}")
+            self.log_msg("error", f"Error receiving message from {q_name}: {e}", self.name)
 
-    def send_message(self, queue: Queue, command: str, data: str = ""):
+    def send_message(self, q_name: str, command: str, data: str = ""):
         try:
-            queue.put({"command": command,
+            self.queues[q_name].put({"command": command,
                        "data": data,
                        "sender": self.name})
         except Exception as e:
-            self.log_msg("error", f"{self.name}: Error sending message to {queue.name}: {e}")
+            self.log_msg("error", f"Error sending message to {q_name}: {e}", self.name)
 
-    def log_msg(self, level: str, msg: str):
+    def log_msg(self, level: str, msg: str, log_originator: str):
         timestamp = datetime.now()
         log_time = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        formatted_message = f"{log_time} - {msg}"
+        formatted_message = f"{log_time} - log originator:{log_originator} - {msg}"
         recent_log = {"level": level, "msg": formatted_message}
-        self.queues["log_queue"].put({"command": "log",
+        self.queues[q.log_queue].put({"command": "log",
                    "data": recent_log,
                    "sender": self.name})

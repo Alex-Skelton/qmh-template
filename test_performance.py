@@ -1,10 +1,4 @@
-from datetime import datetime
-from multiprocessing import Queue
-import sys
-
 from PyQt6 import QtCore, QtGui, QtWidgets
-
-from workers.named_queues import NamedQueues as q
 
 
 class Ui_MainWindow(object):
@@ -78,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, name: str, queues, msg_check_interval: int=100, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.name = name
+        self.log_list_text = []
         self.setupUi(self)
         self.queues = queues
         self.msg_check_interval = msg_check_interval
@@ -104,6 +99,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if command == "shutdown":
                 self.close()
 
+
     def closeEvent(self, event):
         self.send_message(q.main_queue, "shutdown")
         super().closeEvent(event)
@@ -117,15 +113,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                    "data": recent_log,
                    "sender": self.name})
 
-
-if __name__ == "__main__":
-    # Setup multiprocessing queue
-    q = Queue()
-    mainq = Queue()
-
-    app = QtWidgets.QApplication(sys.argv)
-    mainWindow = MainWindow(q, mainq)
-    mainWindow.show()
-
-    ret = app.exec()
-    sys.exit(ret)
+    def connect_iot_device(self):
+        self.send_message(q.iot_queue, "connect")
+        self.iot_connected_btn.setText("Connecting...")
