@@ -5,7 +5,7 @@ from workers.base_worker import BaseWorker
 from workers.named_queues import NamedQueues as q
 
 
-class MainWorker(BaseWorker):
+class TemplateWorker(BaseWorker):
     def __init__(self, name: str, queues: dict, active: bool=False,
                        msg_check_interval: float=0.5, run_interval: float=2):
         super().__init__(name, queues)
