@@ -54,3 +54,4 @@ class BaseWorker:
         self.queues[q.log_queue].put({"command": "log",
                    "data": recent_log,
                    "sender": self.name})
+

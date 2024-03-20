@@ -81,8 +81,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.queues = queues
         self.msg_check_interval = msg_check_interval
-        self.iot_connected_btn.clicked.connect(lambda: self.connect_iot_device())
-        self.tabWidget.currentChanged.connect(self.on_tab_changed)  # Connect the signal
+        # self.iot_connected_btn.clicked.connect(lambda: self.connect_iot_device())
+        # self.tabWidget.currentChanged.connect(self.on_tab_changed)  # Connect the signal
         self.timer = QtCore.QTimer()
         self.timer.setInterval(msg_check_interval)
         self.timer.timeout.connect(self.check_queue)
